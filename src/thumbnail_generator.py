@@ -76,10 +76,35 @@ def _load_prompt(topic: str, category: str) -> str:
     )
 
 
+def _gradient_background(category: str) -> Image.Image:
+    """Pillow-only fallback when DALL-E is not configured.
+    Produces a clean two-tone gradient with a faint category tag.
+    """
+    # 1792x1024 to match the DALL-E output dimensions so the rest of the
+    # pipeline (crop, title composition) keeps working unchanged.
+    w, h = 1792, 1024
+    # Category-tinted accent layered on top of the brand navy.
+    accent = {
+        "stock":  (0, 120, 180),
+        "fx":     (0, 150, 110),
+        "crypto": (180, 120, 0),
+    }.get(category, (60, 90, 160))
+    base = Image.new("RGB", (w, h), BRAND_PRIMARY)
+    overlay = Image.new("RGB", (w, h), accent)
+    # Vertical alpha mask: top accent → bottom brand color.
+    mask = Image.new("L", (w, h), 0)
+    md = ImageDraw.Draw(mask)
+    for y in range(h):
+        md.line([(0, y), (w, y)], fill=int(255 * (1 - y / h)))
+    base.paste(overlay, (0, 0), mask)
+    return base.filter(ImageFilter.GaussianBlur(radius=2))
+
+
 def _generate_background(topic: str, category: str) -> Image.Image:
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        raise RuntimeError("OPENAI_API_KEY is not set")
+        log.warning("OPENAI_API_KEY not set — using Pillow-only gradient background.")
+        return _gradient_background(category)
 
     client = OpenAI(api_key=api_key)
     prompt = _load_prompt(topic, category)
