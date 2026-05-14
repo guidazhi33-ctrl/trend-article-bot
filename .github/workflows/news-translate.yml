@@ -1,0 +1,82 @@
+name: Translate News and Tweet
+
+# ============================================================
+# 🎯 ニュース翻訳ツイート: 1 日 6 本、JST 高エンゲージ時間帯。
+#   07:00 / 11:00 / 15:00 / 19:00 / 22:00 / 01:00
+# X API Free tier(月 500 投稿)枠を意識して 6 本/日 = 180/月。
+# 記事連動ツイート 10/日(300/月)と合算で 480/月 ≒ 上限ギリギリ。
+# ============================================================
+
+on:
+  schedule:
+    - cron: '0 22 * * *'   # JST 07:00
+    - cron: '0 2 * * *'    # JST 11:00
+    - cron: '0 6 * * *'    # JST 15:00
+    - cron: '0 10 * * *'   # JST 19:00
+    - cron: '0 13 * * *'   # JST 22:00
+    - cron: '0 16 * * *'   # JST 01:00 (NY市場)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: news-translate
+  cancel-in-progress: false
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout (state branch)
+        uses: actions/checkout@v4
+        with:
+          ref: news-state
+          fetch-depth: 0
+        continue-on-error: true
+
+      - name: Ensure news-state branch
+        run: |
+          if [ ! -d .git ] || ! git rev-parse --verify news-state >/dev/null 2>&1; then
+            git init
+            git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" || true
+            git checkout --orphan news-state || true
+            git rm -rf . 2>/dev/null || true
+            mkdir -p state
+            echo '{"posted":{}}' > state/news_posted.json
+            git add state/news_posted.json
+            git -c user.email=bot@example.com -c user.name=bot commit -m "init news-state" || true
+          fi
+
+      - name: Fetch source code from main
+        run: |
+          git fetch origin main:refs/remotes/origin/main || true
+          git checkout origin/main -- src prompts scripts requirements.txt config
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run translator
+        env:
+          ANTHROPIC_API_KEY:      ${{ secrets.ANTHROPIC_API_KEY }}
+          X_API_KEY:              ${{ secrets.X_API_KEY }}
+          X_API_SECRET:           ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN:         ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET:  ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+          X_BEARER_TOKEN:         ${{ secrets.X_BEARER_TOKEN }}
+        run: python scripts/run_news_translator.py
+
+      - name: Persist state
+        run: |
+          git -c user.email=bot@example.com -c user.name=bot add state/news_posted.json
+          git -c user.email=bot@example.com -c user.name=bot commit -m "update news-state" || echo "no changes"
+          git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:news-state || true

@@ -1,0 +1,53 @@
+name: Weekly Report
+
+# ============================================================
+# 毎週日曜 22:00 JST(= UTC 13:00 日曜)に運用レポート Issue を発行。
+# 直近7日のドラフト本数・公開率・コストを集計し、Claude に来週の
+# 改善提案を生成させる。
+# ============================================================
+
+on:
+  schedule:
+    - cron: '0 13 * * 0'   # 日曜 UTC 13:00 = JST 月曜 00:00 ※週末締めなら微調整可
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch cost-state branch
+        run: |
+          mkdir -p state
+          REPO_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          if git ls-remote --heads "$REPO_URL" cost-state | grep -q cost-state; then
+            git fetch "$REPO_URL" cost-state:cost-state
+            git show cost-state:state/cost.json > state/cost.json 2>/dev/null || echo '{"daily":{},"monthly":{}}' > state/cost.json
+          else
+            echo '{"daily":{},"monthly":{}}' > state/cost.json
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate report
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN:      ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python scripts/weekly_report.py

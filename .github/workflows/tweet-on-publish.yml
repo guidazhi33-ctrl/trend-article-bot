@@ -1,0 +1,45 @@
+name: Tweet on note Publish
+
+# Issue にコメントが付くたびに発火。コメントに `note: https://note.com/...`
+# が含まれていれば X に投稿し、Issue をクローズする。
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  tweet:
+    # auto-draft ラベルが付いた Issue へのコメントだけに反応
+    if: contains(toJson(github.event.issue.labels), 'auto-draft') && contains(github.event.comment.body, 'note:')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Tweet
+        env:
+          GITHUB_TOKEN:           ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY:      ${{ github.repository }}
+          GITHUB_EVENT_PATH:      ${{ github.event_path }}
+          X_API_KEY:              ${{ secrets.X_API_KEY }}
+          X_API_SECRET:           ${{ secrets.X_API_SECRET }}
+          X_ACCESS_TOKEN:         ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET:  ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+          X_BEARER_TOKEN:         ${{ secrets.X_BEARER_TOKEN }}
+        run: python scripts/run_tweet_on_publish.py

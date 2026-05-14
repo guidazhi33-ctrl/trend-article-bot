@@ -1,0 +1,158 @@
+# ============================================================
+# キーワード → アフィリエイトリンク マッピング
+# 記事内容に「カテゴリのキーワード」が出現したら links のいずれかを
+# 適切な見出し直後・本文中・末尾に自動挿入する。
+#
+# ⚠ note 規約への安全運用方針:
+#   - A8.net / もしもアフィリエイト経由の金融案件をメインに据える
+#   - Amazon は「**記事内容と高い適合性のある書籍リコメンド**」に限定
+#     (家電や雑貨はNG。書籍のみOK = 多くのnoteクリエイターの慣例)
+#   - 各記事に 4 リンクまで、コンテキスト外のリンクは挿入しない
+#   - CTA テキストには「※Amazonアフィリエイトを含みます」の開示を付与
+#
+# Amazon の URL 内 `{AMAZON_ID}` は実行時に環境変数 `AMAZON_AFFILIATE_ID`
+# に置換される。未設定なら Amazon リンクは無視され A8 にフォールバック。
+# ============================================================
+
+categories:
+  fx:
+    keywords:
+      - "FX"
+      - "為替"
+      - "ドル円"
+      - "ユーロドル"
+      - "USDJPY"
+      - "米ドル"
+      - "為替介入"
+    links:
+      # payout_jpy: 提携後の想定報酬単価(円)。高いほど優先採用される
+      - title: "DMM FX 口座開設(国内最大級・スプレッド業界最狭水準)"
+        url: "https://px.a8.net/svt/ejp?a8mat=YOUR_A8_FX_DMM"
+        cta: "👉 口座開設&取引で最大30万円キャッシュバック"
+        payout_jpy: 25000
+      - title: "GMOクリック証券 FXネオ"
+        url: "https://px.a8.net/svt/ejp?a8mat=YOUR_A8_FX_GMO"
+        cta: "👉 FX取引高世界1位(2012〜2022) スワップポイントも高水準"
+        payout_jpy: 22000
+      - title: "外為どっとコム"
+        url: "https://px.a8.net/svt/ejp?a8mat=YOUR_A8_FX_GAITAME"
+        cta: "👉 初心者向けセミナーが圧倒的に充実"
+        payout_jpy: 15000
+
+  crypto:
+    keywords:
+      - "ビットコイン"
+      - "BTC"
+      - "イーサリアム"
+      - "ETH"
+      - "暗号資産"
+      - "仮想通貨"
+      - "アルトコイン"
+      - "リップル"
+      - "XRP"
+    links:
+      - title: "Coincheck(国内最大手・取り扱い銘柄数No.1)"
+        url: "https://px.a8.net/svt/ejp?a8mat=YOUR_A8_CRYPTO_COINCHECK"
+        cta: "👉 アプリDL数3年連続No.1。500円から始められる"
+        payout_jpy: 10000
+      - title: "bitFlyer(ビットコイン取引量国内No.1)"
+        url: "https://px.a8.net/svt/ejp?a8mat=YOUR_A8_CRYPTO_BITFLYER"
+        cta: "👉 1円から購入可能・セキュリティ国内最高水準"
+        payout_jpy: 8000
+      - title: "GMOコイン(現物・レバレッジ・積立対応)"
+        url: "https://px.a8.net/svt/ejp?a8mat=YOUR_A8_CRYPTO_GMO"
+        cta: "👉 各種手数料が無料(送金・入出金)"
+        payout_jpy: 7000
+
+  stock:
+    keywords:
+      - "日経平均"
+      - "TOPIX"
+      - "米国株"
+      - "S&P500"
+      - "NASDAQ"
+      - "個別株"
+      - "高配当"
+      - "新NISA"
+      - "投資信託"
+    links:
+      - title: "SBI証券(口座開設数No.1)"
+        url: "https://px.a8.net/svt/ejp?a8mat=YOUR_A8_STOCK_SBI"
+        cta: "👉 国内株式売買手数料0円(条件あり) 新NISA対応"
+        payout_jpy: 5000
+      - title: "楽天証券(楽天ポイントで投信が買える)"
+        url: "https://px.a8.net/svt/ejp?a8mat=YOUR_A8_STOCK_RAKUTEN"
+        cta: "👉 楽天カード積立でポイント還元"
+        payout_jpy: 4000
+      - title: "マネックス証券 米国株"
+        url: "https://px.a8.net/svt/ejp?a8mat=YOUR_A8_STOCK_MONEX"
+        cta: "👉 米国株取扱銘柄数業界トップクラス"
+        payout_jpy: 3500
+
+  education:
+    # 高単価教育系(全カテゴリで横断的に挿入される)
+    keywords:
+      - "学ぶ"
+      - "勉強"
+      - "初心者"
+      - "始め方"
+      - "解説"
+    links:
+      - title: "ファイナンシャルアカデミー 無料体験"
+        url: "https://px.a8.net/svt/ejp?a8mat=YOUR_A8_FINANCIAL_ACADEMY"
+        cta: "👉 投資の学校(累計受講者75万人)無料Web体験"
+        payout_jpy: 5000
+      # ↓ 提携できれば追加してください(投資スクール系は高単価)
+      # - title: "GFS グローバルファイナンシャルスクール"
+      #   url: "https://px.a8.net/svt/ejp?a8mat=YOUR_A8_GFS"
+      #   cta: "👉 国内最大級の投資スクール 無料体験講座"
+      #   payout_jpy: 10000
+
+# ============================================================
+# Amazon 書籍リコメンド(BODY_2 スロット優先で挿入される)
+# 各カテゴリの記事に「文脈適合した書籍」を 1 件選んで挿入。
+# URL は Amazon.co.jp の検索ページにアフィリ ID を付与する形式で、
+# 特定 ASIN ではないので商品廃版でリンク切れにならない堅牢な形。
+# ============================================================
+amazon_books:
+  stock:
+    - title: "📚 株式投資の名著・入門書(Amazon)"
+      # 検索: "株式投資 名著"
+      url: "https://www.amazon.co.jp/s?k=%E6%A0%AA%E5%BC%8F%E6%8A%95%E8%B3%87+%E5%90%8D%E8%91%97&i=stripbooks&tag={AMAZON_ID}"
+      cta: "👉 『敗者のゲーム』『株式投資の未来』など投資家必読の書籍をAmazonでチェック"
+    - title: "📈 新NISA・米国株の入門書ランキング(Amazon)"
+      url: "https://www.amazon.co.jp/s?k=%E6%96%B0NISA+%E7%B1%B3%E5%9B%BD%E6%A0%AA&i=stripbooks&tag={AMAZON_ID}"
+      cta: "👉 新NISA時代の戦略・米国株投資の決定版"
+
+  fx:
+    - title: "📘 FXトレードの定番書(Amazon)"
+      # 検索: "FX 入門 トレード"
+      url: "https://www.amazon.co.jp/s?k=FX+%E5%85%A5%E9%96%80+%E3%83%88%E3%83%AC%E3%83%BC%E3%83%89&i=stripbooks&tag={AMAZON_ID}"
+      cta: "👉 『マーケットの魔術師』『デイトレード』などFXトレーダー必読の書籍"
+    - title: "🌐 為替相場の読み方を学ぶ書籍(Amazon)"
+      url: "https://www.amazon.co.jp/s?k=%E7%82%BA%E6%9B%BF%E7%9B%B8%E5%A0%B4+%E5%88%86%E6%9E%90&i=stripbooks&tag={AMAZON_ID}"
+      cta: "👉 ドル円・為替市場のファンダ&テクニカル分析の決定版"
+
+  crypto:
+    - title: "📒 暗号資産・ブロックチェーン入門書(Amazon)"
+      # 検索: "暗号資産 入門"
+      url: "https://www.amazon.co.jp/s?k=%E6%9A%97%E5%8F%B7%E8%B3%87%E7%94%A3+%E5%85%A5%E9%96%80&i=stripbooks&tag={AMAZON_ID}"
+      cta: "👉 ビットコイン・イーサリアム・Web3の基礎から最新動向まで網羅"
+    - title: "⚡ ブロックチェーン技術の専門書(Amazon)"
+      url: "https://www.amazon.co.jp/s?k=%E3%83%96%E3%83%AD%E3%83%83%E3%82%AF%E3%83%81%E3%82%A7%E3%83%BC%E3%83%B3+%E6%8A%80%E8%A1%93&i=stripbooks&tag={AMAZON_ID}"
+      cta: "👉 『マスタリング・ビットコイン』など技術的に深く理解したい人向け"
+
+# 挿入ルール
+insertion_rules:
+  # 記事冒頭(導入の直後)に挿入するアフィリ数
+  intro: 1
+  # 本文中(セクション境界)に挿入する数
+  body: 2
+  # 末尾(まとめの直後)に挿入する数
+  outro: 1
+  # 同一URLの重複挿入禁止
+  dedupe: true
+  # Amazon 書籍を BODY_2 スロットで優先採用するか
+  prefer_amazon_in_body2: true
+  # Amazon リンクに付与する開示文(規約・景表法対応)
+  amazon_disclosure: "※Amazonのアソシエイトとして、当アカウントは適格販売により収入を得ています。"

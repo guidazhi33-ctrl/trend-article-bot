@@ -1,0 +1,105 @@
+name: Generate Draft Article
+
+# ============================================================
+# 🎯 フォロワー獲得最適化: JST の高エンゲージ時間帯に投稿。
+# ------------------------------------------------------------
+# 日本人金融クラスタの SNS 接触ピークは:
+#   06:00 / 07:00 / 08:00 (朝-東京寄付)
+#   12:00 / 14:00 (昼休み・アフタヌーン)
+#   17:00 / 19:00 / 21:00 / 22:00 / 23:00 (帰宅後〜NY市場)
+# GitHub Actions の cron は UTC で評価される。
+# ============================================================
+
+on:
+  schedule:
+    - cron: '0 21 * * *'   # JST 06:00
+    - cron: '0 22 * * *'   # JST 07:00
+    - cron: '0 23 * * *'   # JST 08:00
+    - cron: '0 3 * * *'    # JST 12:00
+    - cron: '0 5 * * *'    # JST 14:00
+    - cron: '0 8 * * *'    # JST 17:00
+    - cron: '0 10 * * *'   # JST 19:00
+    - cron: '0 12 * * *'   # JST 21:00
+    - cron: '0 13 * * *'   # JST 22:00
+    - cron: '0 14 * * *'   # JST 23:00
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: generate-draft
+  cancel-in-progress: false
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install Japanese fonts
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-cjk
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Fetch cost-state branch
+        # cost_guard が読む state/cost.json を別ブランチから取り出す
+        run: |
+          git fetch origin cost-state:cost-state 2>/dev/null || true
+          mkdir -p state
+          if git show cost-state:state/cost.json > /tmp/cost.json 2>/dev/null; then
+            cp /tmp/cost.json state/cost.json
+          else
+            echo '{"daily":{},"monthly":{}}' > state/cost.json
+          fi
+
+      - name: Run draft pipeline
+        env:
+          ANTHROPIC_API_KEY:        ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY:           ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN:             ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY:        ${{ github.repository }}
+          NEWSDATA_API_KEY:         ${{ secrets.NEWSDATA_API_KEY }}
+          AMAZON_AFFILIATE_ID:      ${{ secrets.AMAZON_AFFILIATE_ID }}
+          LINE_OFFICIAL_URL:        ${{ secrets.LINE_OFFICIAL_URL }}
+          FOCUS_CATEGORY:           ${{ vars.FOCUS_CATEGORY }}
+          BRAND_NAME:               ${{ vars.BRAND_NAME || '金融トレンド徹底解剖' }}
+          DAILY_COST_LIMIT_USD:     ${{ vars.DAILY_COST_LIMIT_USD || '5.0' }}
+          MONTHLY_COST_LIMIT_USD:   ${{ vars.MONTHLY_COST_LIMIT_USD || '130.0' }}
+        run: python scripts/generate_one_draft.py
+
+      - name: Persist cost-state
+        if: always()
+        run: |
+          if [ ! -f state/cost.json ]; then
+            echo "no cost state to persist"; exit 0
+          fi
+          TMP=$(mktemp -d)
+          cp state/cost.json "$TMP/cost.json"
+          REPO_URL="https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          if git ls-remote --heads "$REPO_URL" cost-state | grep -q cost-state; then
+            git clone --branch cost-state --single-branch "$REPO_URL" "$TMP/repo"
+          else
+            git clone "$REPO_URL" "$TMP/repo"
+            ( cd "$TMP/repo" && git checkout --orphan cost-state && git rm -rf . 2>/dev/null || true )
+          fi
+          mkdir -p "$TMP/repo/state"
+          cp "$TMP/cost.json" "$TMP/repo/state/cost.json"
+          cd "$TMP/repo"
+          git -c user.email=bot@example.com -c user.name=bot add state/cost.json
+          git -c user.email=bot@example.com -c user.name=bot commit -m "update cost-state" || { echo "no changes"; exit 0; }
+          git push origin cost-state
