@@ -180,8 +180,10 @@ def _add_overlay(img: Image.Image, title: str, category: str) -> Image.Image:
     )
 
     # 2) カテゴリバッジ(左上、強配色)
-    cat_label = {"stock": "📈 株式トレンド", "fx": "💱 FX市況",
-                 "crypto": "🪙 暗号資産"}.get(category, "💹 金融")
+    # Linuxの IPAGothic/NotoSansCJK は絵文字グリフを持たないので
+    # シンボル文字(常に表示可)に置換。
+    cat_label = {"stock": "▲ 株式トレンド", "fx": "¥ FX市況",
+                 "crypto": "₿ 暗号資産"}.get(category, "■ 金融")
     cat_color = {"stock": (0, 200, 90), "fx": (255, 195, 0),
                  "crypto": (0, 240, 255)}.get(category, (180, 180, 180))
     tag_font = _find_jp_font(34)
@@ -215,11 +217,11 @@ def _add_overlay(img: Image.Image, title: str, category: str) -> Image.Image:
     else:
         title_start_y = 130
 
-    # 4) タイトル本体(左寄せ・2〜3行)
+    # 4) タイトル本体(左寄せ・最大 4 行に拡張、フォントも縮めて切れにくくする)
     title_clean = _strip_brackets(title).replace(big_number or "", "", 1).strip()
-    title_font = _find_jp_font(54)
-    wrapped = _wrap_title(title_clean, max_per_line=15, max_lines=3)
-    line_h = 70
+    title_font = _find_jp_font(48)
+    wrapped = _wrap_title(title_clean, max_per_line=17, max_lines=4)
+    line_h = 60
 
     for i, line in enumerate(wrapped):
         y = title_start_y + i * line_h
